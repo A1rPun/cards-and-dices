@@ -48,12 +48,14 @@ class Lane {
 const cards = ["hearts", "diamonds", "clubs", "spades"]
   .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
 const drawIndex = ref(-1);
+const won = ref(false);
 const score = ref({
   "hearts": 0,
   "diamonds": 0,
   "clubs": 0,
   "spades": 0,
 });
+const shaker = ref({})
 
 shuffleDeck(cards)
 
@@ -103,6 +105,19 @@ function canAddToLane(card: Card): Lane|undefined {
     }
   }
 }
+
+function checkWinState(): void {
+  if (playingField.value.every(field => !field.hidden.length)
+    && !drawDeck.length) {
+    console.log("won")
+    won.value = true;
+  }
+}
+
+function shake(card: Card): void {
+  shaker.value = card;
+  setTimeout(() => shaker.value = {}, 100);
+}
 </script>
 
 <template>
@@ -115,6 +130,7 @@ function canAddToLane(card: Card): Lane|undefined {
             v-bind:key="suit"
             :suit="suit"
             :number="n"
+            :class="{ shake: shaker.n === n && shaker.suit === suit }"
             @click="() => {
               const card = new Card(suit, n);
               const lane = canAddToLane(card);
@@ -127,6 +143,8 @@ function canAddToLane(card: Card): Lane|undefined {
                 } else {
                   score[suit]--;
                 }
+              } else {
+                shake(card);
               }
             }"
           />
@@ -137,6 +155,7 @@ function canAddToLane(card: Card): Lane|undefined {
           <PlayingCard
             :suit="drawIndex >= 0 ? drawDeck[drawIndex].suit : 'hearts'"
             :number="drawIndex >= 0 ? drawDeck[drawIndex].n : 0"
+            :class="{ shake: drawIndex >= 0 && shaker.n === drawDeck[drawIndex].n && shaker.suit === drawDeck[drawIndex].suit }"
             @click="() => {
               if (canAddToScore(drawDeck[drawIndex])) {
                 drawDeck.splice(drawIndex, 1);
@@ -150,6 +169,9 @@ function canAddToLane(card: Card): Lane|undefined {
                 const card = drawDeck.splice(drawIndex, 1);
                 lane.cards.push(...card);
                 drawIndex--;
+                checkWinState();
+              } else {
+                shake(drawDeck[drawIndex]);
               }
             }"
           />
@@ -184,6 +206,7 @@ function canAddToLane(card: Card): Lane|undefined {
           v-bind:key="idx2"
           :suit="card.suit"
           :number="card.n"
+          :class="{ shake: shaker.n === card.n && shaker.suit === card.suit }"
           @click="() => {
             const isLast = idx2 === field.cards.length - 1;
 
@@ -199,11 +222,15 @@ function canAddToLane(card: Card): Lane|undefined {
               const cards = field.cards.splice(idx2);
               lane.cards.push(...cards);
               field.popHidden();
+              checkWinState();
+            } else {
+              shake(card);
             }
           }"
         />
       </div>
     </div>
+    <span class="won" v-if="won">YOU WON!</span>
   </div>
 </template>
 
@@ -213,7 +240,7 @@ function canAddToLane(card: Card): Lane|undefined {
   flex-direction: column;
   background: green;
   margin-bottom: 8px;
-  /* min-height: 100%; */
+  flex: 1;
 }
 
 .solitaire--header {
@@ -250,6 +277,11 @@ function canAddToLane(card: Card): Lane|undefined {
   margin-top: -48px;
 }
 
+.won {
+  font-size: 3em;
+  text-align: center;
+}
+
 @media (min-width: 1024px) {
   .solitaire {
     margin-bottom: 8px;
@@ -277,6 +309,38 @@ function canAddToLane(card: Card): Lane|undefined {
   }
 
   .solitaire--playfield-lane > * {
+  }
+
+  .won {
+    font-size: 6em;
+  }
+}
+
+.shake {
+  animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+}
+
+@keyframes shake {
+  0%,
+  80% {
+    transform: translate3d(-2px, 0, 0);
+  }
+
+  10%,
+  70% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  20%,
+  40%,
+  60% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  30%,
+  50% {
+    transform: translate3d(4px, 0, 0);
   }
 }
 </style>
