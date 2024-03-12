@@ -220,19 +220,19 @@ function canAddToLane(card: Card): Lane|undefined {
 
 .solitaire--header {
   display: flex;
+  justify-content: space-between;
 }
 
 .solitaire--goal {
   display: flex;
-  flex: 1;
-  gap: 8px;
+  gap: 4px;
 }
 
 .solitaire--wrap {
   display: flex;
-  gap: 8px;
-  margin: 8px;
-  padding: 8px;
+  gap: 4px;
+  margin: 4px;
+  padding: 4px;
 }
 
 .solitaire--deck {}
@@ -240,18 +240,49 @@ function canAddToLane(card: Card): Lane|undefined {
 .solitaire--playfield {
   display: flex;
   justify-content: space-between;
-  margin: 8px;
-  padding: 8px;
+  margin: 4px;
+  padding: 4px;
 }
 
 .solitaire--playfield-lane {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 64px;
+  margin-top: 48px;
 }
 
 .solitaire--playfield-lane > * {
-  margin-top: -64px;
+  margin-top: -48px;
+}
+
+@media (min-width: 1024px) {
+  .solitaire {
+    margin-bottom: 8px;
+  }
+
+  .solitaire--header {
+  }
+
+  .solitaire--goal {
+    gap: 8px;
+  }
+
+  .solitaire--wrap {
+    gap: 8px;
+    margin: 8px;
+    padding: 8px;
+  }
+
+  .solitaire--deck {}
+
+  .solitaire--playfield {
+    margin: 8px;
+    padding: 8px;
+  }
+
+  .solitaire--playfield-lane {
+  }
+
+  .solitaire--playfield-lane > * {
+  }
 }
 </style>

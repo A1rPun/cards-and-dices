@@ -30,11 +30,13 @@ function getSuit(suit?: string): string {
       'playing-card--empty': number === 0,
     }]"
   >
-    <div class="playing-card--suit" :class="[{ 'hidden': number < 2 }]">
-      <span>{{ getSuit(suit) }}</span>
-    </div>
-    <div class="playing-card--number" :class="[suit]">
-      <span>{{ getNumber(number) }}</span>
+    <div class="playing-card--top">
+      <div class="playing-card--number" :class="[suit]">
+        <span>{{ getNumber(number) }}</span>
+      </div>
+      <div class="playing-card--suit" :class="[{ 'hidden': number < 2 }]">
+        <span>{{ getSuit(suit) }}</span>
+      </div>
     </div>
     <div class="playing-card--suit-large" :class="[{ 'hidden': number < 2 }]">
       <span>{{ getSuit(suit) }}</span>
@@ -48,9 +50,10 @@ function getSuit(suit?: string): string {
   background: white;
   color: black;
   border-radius: 4px;
-  width: 64px;
-  height: 96px;
-  display: inline-block;
+  width: 56px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
   user-select: none;
   cursor: pointer;
   border: 1px solid black;
@@ -74,27 +77,61 @@ function getSuit(suit?: string): string {
   color: red;
 }
 
+.playing-card--top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5em;
+  padding: 0 2px;
+  margin-top: -4px;
+}
+
 .playing-card--number {
-  position: absolute;
-  top: -8px;
-  left: 4px;
-  font-size: 2em;
 }
 
 .playing-card--suit {
-  position: absolute;
-  right: 4px;
-  font-size: x-large;
 }
 
 .playing-card--suit-large {
-  position: absolute;
-  bottom: -16px;
-  left: 4px;
-  font-size: 4em;
+  font-size: 3.5em;
+  text-align: center;
+  flex: 1;
+  margin-top: -24px;
 }
 
 .hidden {
   display: none;
+}
+
+@media (min-width: 1024px) {
+  .playing-card {
+    border-radius: 4px;
+    width: 64px;
+    height: 96px;
+  }
+
+  .playing-card--empty {
+  }
+
+  .playing-card--back {
+  }
+
+  .hearts, .diamonds {
+  }
+
+  .playing-card--top {
+    font-size: 2em;
+    padding: 0 4px;
+    margin-top: -8px;
+  }
+
+  .playing-card--number {
+  }
+
+  .playing-card--suit {
+  }
+
+  .playing-card--suit-large {
+    font-size: 4em;
+  }
 }
 </style>
