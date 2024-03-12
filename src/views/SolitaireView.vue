@@ -106,8 +106,6 @@ function canAddToLane(card: Card): Lane|undefined {
 </script>
 
 <template>
-  <h1>Solitaire ♥︎ ♦︎ ♣︎ ♠︎</h1>
-
   <div class="solitaire">
     <div class="solitaire--header">
       <div class="solitaire--goal">
@@ -231,7 +229,6 @@ function canAddToLane(card: Card): Lane|undefined {
 .solitaire--wrap {
   display: flex;
   gap: 4px;
-  margin: 4px;
   padding: 4px;
 }
 
@@ -240,7 +237,6 @@ function canAddToLane(card: Card): Lane|undefined {
 .solitaire--playfield {
   display: flex;
   justify-content: space-between;
-  margin: 4px;
   padding: 4px;
 }
 
@@ -268,15 +264,13 @@ function canAddToLane(card: Card): Lane|undefined {
 
   .solitaire--wrap {
     gap: 8px;
-    margin: 8px;
-    padding: 8px;
+    padding: 16px;
   }
 
   .solitaire--deck {}
 
   .solitaire--playfield {
-    margin: 8px;
-    padding: 8px;
+    padding: 16px;
   }
 
   .solitaire--playfield-lane {

@@ -24,7 +24,6 @@ function rollDice(dices: Die[]): Die[] {
 </script>
 
 <template>
-  <h1>Yahtzee ⚀ ⚅</h1>
   <div class="board">
     <div v-for="(die, idx) in dices" v-bind:key="idx">
       <PlayingDice :number="die.n" />

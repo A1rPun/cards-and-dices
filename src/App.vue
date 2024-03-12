@@ -3,15 +3,15 @@ import { RouterLink, RouterView } from 'vue-router'
 </script>
 
 <template>
-  <header>
+  <!-- <header>
     <div class="wrapper">
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/solitaire">Solitaire</RouterLink>
-        <RouterLink to="/yahtzee">Yahtzee</RouterLink>
+        <RouterLink to="/solitaire">Solitaire ♥︎ ♦︎ ♣︎ ♠︎</RouterLink>
+        <RouterLink to="/yahtzee">Yahtzee ⚀ ⚅</RouterLink>
       </nav>
     </div>
-  </header>
+  </header> -->
 
   <RouterView />
 </template>
