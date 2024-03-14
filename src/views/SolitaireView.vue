@@ -1,49 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import PlayingCard from "../components/PlayingCard.vue";
-
-class Card {
-  suit: string
-  n: number
-
-  constructor(suit: string, n: number) {
-    this.suit = suit;
-    this.n = n;
-  }
-
-  isRed(): boolean {
-    return this.suit === "hearts" || this.suit === "diamonds";
-  }
-}
-
-class Lane {
-  cards: Card[]
-  hidden: Card[]
-
-  constructor(cards: Card[]) {
-    const first = cards.pop()
-    this.hidden = cards;
-    this.cards = [first!];
-  }
-
-  isEmpty(): boolean {
-    return this.hidden.length === 0 && this.cards.length === 0;
-  }
-
-  canAddCard(card: Card): boolean {
-    if (!this.cards.length) return false;
-
-    const topCard = this.cards[this.cards.length - 1];
-
-    return topCard.n - 1 === card.n && topCard.isRed() !== card.isRed()
-  }
-
-  popHidden(): void {
-    if (this.cards.length === 0 && this.hidden.length) {
-      this.cards.push(this.hidden.pop())
-    }
-  }
-}
+import PlayingCard from "@/components/Solitaire/PlayingCard.vue";
+import { Card } from "@/components/Solitaire/Card";
+import { Lane } from "@/components/Solitaire/Lane";
 
 const cards = ["hearts", "diamonds", "clubs", "spades"]
   .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
@@ -261,9 +220,9 @@ function restart() {
 
 .solitaire--bar {
   display: flex;
-  /* background: darkgreen; */
+  background: darkgreen;
   justify-content: space-between;
-  padding: 16px;
+  padding: 4px;
   gap: 8px;
 }
 
@@ -326,6 +285,11 @@ function restart() {
     margin-bottom: 8px;
   }
 
+  .solitaire--bar {
+    padding: 16px;
+    gap: 8px;
+  }
+
   .solitaire--header {
   }
 
@@ -348,6 +312,7 @@ function restart() {
   }
 
   .solitaire--playfield-lane > * {
+    margin-top: -64px;
   }
 
   .won {

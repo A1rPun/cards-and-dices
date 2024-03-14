@@ -50,8 +50,8 @@ function getSuit(suit?: string): string {
   background: white;
   color: black;
   border-radius: 4px;
-  width: 56px;
-  height: 80px;
+  width: 48px;
+  height: 72px;
   display: flex;
   flex-direction: column;
   user-select: none;
@@ -80,7 +80,7 @@ function getSuit(suit?: string): string {
 .playing-card--top {
   display: flex;
   justify-content: space-between;
-  font-size: 1.5em;
+  font-size: 1.3em;
   padding: 0 2px;
   margin-top: -4px;
 }
@@ -92,10 +92,10 @@ function getSuit(suit?: string): string {
 }
 
 .playing-card--suit-large {
-  font-size: 3.5em;
+  font-size: 3em;
   text-align: center;
   flex: 1;
-  margin-top: -24px;
+  margin-top: -16px;
 }
 
 .hidden {
@@ -119,7 +119,7 @@ function getSuit(suit?: string): string {
   }
 
   .playing-card--top {
-    font-size: 2em;
+    font-size: 1.8em;
     padding: 0 4px;
     margin-top: -8px;
   }
@@ -132,6 +132,7 @@ function getSuit(suit?: string): string {
 
   .playing-card--suit-large {
     font-size: 4em;
+    margin-top: -24px;
   }
 }
 </style>
