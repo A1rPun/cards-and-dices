@@ -55,9 +55,10 @@ const score = ref({
   "clubs": 0,
   "spades": 0,
 });
-const shaker = ref({})
+const moves = [];
+const shaker = ref({});
 
-shuffleDeck(cards)
+shuffleDeck(cards);
 
 const playingField = ref([]);
 
@@ -107,21 +108,36 @@ function canAddToLane(card: Card): Lane|undefined {
 }
 
 function checkWinState(): void {
-  if (playingField.value.every(field => !field.hidden.length)
-    && !drawDeck.length) {
-    console.log("won")
+  if (
+    playingField.value.every(field => !field.hidden.length)
+    && !drawDeck.length
+  ) {
     won.value = true;
   }
 }
 
 function shake(card: Card): void {
   shaker.value = card;
-  setTimeout(() => shaker.value = {}, 100);
+  setTimeout(() => shaker.value = {}, 100); // TODO: Fix bug by clearing timeout
+}
+
+function undo() {
+  const lastMove = moves.pop();
+  // lastMove
+}
+
+function restart() {
+  window.location.reload(); // TODO: Better restart
 }
 </script>
 
 <template>
   <div class="solitaire">
+    <div class="solitaire--bar">
+      <!-- <button @click="" title="Hint">?<br>Hint</button> -->
+      <button @click="restart" title="Restart">↺<br>Restart</button>
+      <button @click="undo" title="Undo">↩<br>Undo</button>
+    </div>
     <div class="solitaire--header">
       <div class="solitaire--goal">
         <div class="solitaire--wrap">
@@ -241,6 +257,29 @@ function shake(card: Card): void {
   background: green;
   margin-bottom: 8px;
   flex: 1;
+}
+
+.solitaire--bar {
+  display: flex;
+  /* background: darkgreen; */
+  justify-content: space-between;
+  padding: 16px;
+  gap: 8px;
+}
+
+.solitaire--bar button {
+  height: 50px;
+  width: 100px;
+  background-color: green;
+  border: 1px solid black;
+}
+
+.solitaire--bar button:hover {
+  background-color: darkgreen;
+}
+
+.solitaire--bar button:active {
+  background-color: darkolivegreen;
 }
 
 .solitaire--header {
