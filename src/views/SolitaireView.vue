@@ -10,6 +10,9 @@ const cards = ["hearts", "diamonds", "clubs", "spades"]
 
 const won = ref(false);
 const menu = ref(false);
+const settings = ref({
+  hints: !!localStorage.getItem("solitaireSettingsHints"),
+});
 const score = ref({});
 const moves = ref([]);
 const clicks = ref(0);
@@ -28,6 +31,7 @@ const drawdeck = ref({
 init();
 
 function init() {
+  won.value = false;
   shuffleDeck(cards);
   initScore();
   initPlayfield();
@@ -59,17 +63,13 @@ function initDrawdeck() {
 }
 
 function canAddToScore(card: Card): boolean {
-  if (card.n === 14) {
-    score.value[card.suit] = 14;
-    return true;
-  } else if (card.n === 2 && score.value[card.suit] === 14) {
-    score.value[card.suit] = 2;
-    return true;
-  } else if (card.n - 1 === score.value[card.suit]) {
-    score.value[card.suit] = card.n;
-    return true;
-  }
-  return false;
+  return card.n === 14
+    || card.n === 2 && score.value[card.suit] === 14
+    || card.n - 1 === score.value[card.suit];
+}
+
+function addToScore(card: Card): void {
+  score.value[card.suit] = card.n;
 }
 
 function canAddToLane(card: Card): Lane|undefined {
@@ -137,6 +137,14 @@ function showMenu() {
 function hideMenu() {
   menu.value = false;
 }
+
+function setHint(enabled: boolean) {
+  if (enabled) {
+    localStorage.setItem('solitaireSettingsHints', '1');
+  } else {
+    localStorage.removeItem('solitaireSettingsHints');
+  }
+}
 </script>
 
 <template>
@@ -186,11 +194,20 @@ function hideMenu() {
           <PlayingCard
             :suit="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].suit : 'hearts'"
             :number="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].n : 0"
-            :class="{ shake: drawdeck.index >= 0 && shaker.n === drawdeck.deck[drawdeck.index].n && shaker.suit === drawdeck.deck[drawdeck.index].suit }"
+            :class="{
+              shake: drawdeck.index >= 0
+                && shaker.n === drawdeck.deck[drawdeck.index].n
+                && shaker.suit === drawdeck.deck[drawdeck.index].suit,
+              hinter: settings.hints
+                && drawdeck.index >= 0
+                && (canAddToScore(drawdeck.deck[drawdeck.index])
+                || canAddToLane(drawdeck.deck[drawdeck.index])),
+            }"
             @click="() => {
               if (drawdeck.index === -1) return
 
               if (canAddToScore(drawdeck.deck[drawdeck.index])) {
+                addToScore(drawdeck.deck[drawdeck.index]);
                 drawdeck.deck.splice(drawdeck.index, 1);
                 drawdeck.index--;
                 didAMove();
@@ -245,12 +262,15 @@ function hideMenu() {
           v-bind:key="idx2"
           :suit="card.suit"
           :number="card.n"
-          :class="{ shake: shaker.n === card.n && shaker.suit === card.suit }"
+          :class="{
+            shake: shaker.n === card.n && shaker.suit === card.suit,
+            hinter: settings.hints && (canAddToScore(card) || canAddToLane(card)),
+          }"
           @click="() => {
             const isLast = idx2 === field.cards.length - 1;
 
             if (isLast && canAddToScore(card)) {
-              field.cards.pop();
+              addToScore(field.cards.pop());
               field.popHidden();
               didAMove();
               didAClick();
@@ -285,6 +305,17 @@ function hideMenu() {
     <button @click="newGame">♥︎♦︎♣︎♠︎<br>New game</button>
     <button @click="restart">↺<br>Restart game</button>
     <button @click="hideMenu">×<br>Close menu</button>
+    <label>
+      <input
+        type="checkbox"
+        :checked="settings.hints"
+        @change="event => {
+          settings.hints = event.target.checked;
+          setHint(settings.hints);
+        }"
+      />
+      Hints
+    </label>
     <div>{{ stats.wins }} lifetime wins</div>
     <div>{{ stats.totalMoves }} lifetime moves</div>
     <div>{{ stats.totalClicks }} lifetime card clicks</div>
@@ -392,6 +423,10 @@ button:active {
 
 .solitaire--menu button {
   width: auto;
+}
+
+.hinter {
+  box-shadow: 0 0 0 4px yellow;
 }
 
 @media (min-width: 1024px) {
