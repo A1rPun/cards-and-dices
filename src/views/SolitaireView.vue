@@ -13,21 +13,28 @@ const menu = ref(false);
 const settings = ref({
   hints: !!localStorage.getItem("solitaireSettingsHints"),
 });
-const score = ref({});
 const moves = ref([]);
 const clicks = ref(0);
 const shaker = ref({});
 let shakeTimeout: number;
-const playingField = ref([]);
 const stats = ref({
   wins: parseInt(localStorage.getItem("solitaireLifeTimeWins") ?? "0"),
   totalMoves: parseInt(localStorage.getItem("solitaireLifeTimeMoves") ?? "0"),
   totalClicks: parseInt(localStorage.getItem("solitaireLifeTimeClicks") ?? "0"),
 })
-const drawdeck = ref({
-  deck: [],
-  index: -1,
+const solitaire = ref({
+  drawdeck: [],
+  drawindex: -1,
+  playField: [],
+  score: {},
 });
+
+// const cardAnim = ref({
+//   from: {},
+//   to: {},
+// })
+
+let initState = {};
 
 init();
 
@@ -39,10 +46,20 @@ function init(shuffle = true) {
   initScore();
   initPlayfield();
   initDrawdeck();
+  initState = {
+    drawindex: solitaire.value.drawindex,
+    drawdeck: [...solitaire.value.drawdeck],
+    playField: copyPlayField(solitaire.value.playField),
+    score: {...solitaire.value.score},
+  };
+}
+
+function copyPlayField(playField) {
+  return playField.map(field => new Lane([...field.hidden], [...field.cards]));
 }
 
 function initScore() {
-  score.value = {
+  solitaire.value.score = {
     "hearts": 0,
     "diamonds": 0,
     "clubs": 0,
@@ -51,39 +68,40 @@ function initScore() {
 }
 
 function initPlayfield() {
-  playingField.value = [];
+  solitaire.value.playField = [];
 
   for (let i = 0, count = 0; i < 7; i++) {
     const lane = cards.slice(count, count + i + 1);
-    playingField.value.push(new Lane(lane));
+    const first = lane.pop()
+    solitaire.value.playField.push(new Lane(lane, [first!]));
     count += i + 1;
   }
 }
 
 function initDrawdeck() {
-  drawdeck.value.deck = cards.slice(-24);
-  drawdeck.value.index = -1;
+  solitaire.value.drawdeck = cards.slice(-24);
+  solitaire.value.drawindex = -1;
 }
 
 function canAddToScore(card: Card): boolean {
   return card.n === 14
-    || card.n === 2 && score.value[card.suit] === 14
-    || card.n - 1 === score.value[card.suit];
+    || card.n === 2 && solitaire.value.score[card.suit] === 14
+    || card.n - 1 === solitaire.value.score[card.suit];
 }
 
 function addToScore(card: Card): void {
-  score.value[card.suit] = card.n;
+  solitaire.value.score[card.suit] = card.n;
 }
 
 function canAddToLane(card: Card): Lane|undefined {
   if (card.n === 13) {
-    const [emptyLane] = playingField.value.filter(lane => lane.isEmpty());
+    const [emptyLane] = solitaire.value.playField.filter(lane => lane.isEmpty());
 
     if (emptyLane) {
       return emptyLane;
     }
   } else {
-    const [lane] = playingField.value.filter(lane => lane.canAddCard(card))
+    const [lane] = solitaire.value.playField.filter(lane => lane.canAddCard(card))
 
     if (lane) {
       return lane;
@@ -92,7 +110,7 @@ function canAddToLane(card: Card): Lane|undefined {
 }
 
 function checkWinState(): void {
-  if (!won.value && playingField.value.every(field => !field.hidden.length)) {
+  if (!won.value && solitaire.value.playField.every(field => !field.hidden.length)) {
     won.value = true;
     stats.value.wins = stats.value.wins + 1;
     localStorage.setItem("solitaireLifeTimeWins", stats.value.wins.toString());
@@ -101,7 +119,12 @@ function checkWinState(): void {
 
 function didAMove() {
   stats.value.totalMoves = stats.value.totalMoves + 1;
-  moves.value.push(1); // TODO: history
+  moves.value.push({
+    drawindex: solitaire.value.drawindex,
+    drawdeck: [...solitaire.value.drawdeck],
+    playField: copyPlayField(solitaire.value.playField),
+    score: {...solitaire.value.score},
+  });
   localStorage.setItem("solitaireLifeTimeMoves", stats.value.totalMoves.toString());
 }
 
@@ -118,8 +141,14 @@ function shake(card: Card): void {
 }
 
 function undo() {
-  const lastMove = moves.value.pop();
-  // lastMove
+  moves.value.pop();
+  const lastMove = moves.value.length ? moves.value[moves.value.length - 1] : initState;
+  solitaire.value = {
+    drawindex: lastMove.drawindex,
+    drawdeck: [...lastMove.drawdeck],
+    playField: copyPlayField(lastMove.playField),
+    score: {...lastMove.score},
+  };
 }
 
 function newGame() {
@@ -147,24 +176,35 @@ function setHint(enabled: boolean) {
     localStorage.removeItem('solitaireSettingsHints');
   }
 }
+
+// function setCardAnim(card: Card, rect): void {
+//   cardAnim.value.from = {
+//     top: rect.top,
+//     right: rect.right,
+//     bottom: rect.bottom,
+//     left: rect.left,
+//     ...card,
+//   };
+//   console.log(cardAnim);
+// }
 </script>
 
 <template>
   <div class="solitaire">
     <div class="solitaire--bar">
       <!-- <button @click="" title="Hint">?<br>Hint</button> -->
-      <button @click="showMenu" title="Menu">🍔<br>Menu</button>
+      <button @click="showMenu">🍔<br>Menu</button>
       <div>
         <div v-if="moves.length">{{ moves.length }} moves</div>
         <div v-if="clicks">{{ clicks }} card clicks</div>
       </div>
-      <button @click="undo" title="Undo">↩<br>Undo</button>
+      <button :disabled="!moves.length" @click="undo">↩<br>Undo</button>
     </div>
     <div class="solitaire--header">
       <div class="solitaire--goal">
         <div class="solitaire--wrap">
           <PlayingCard
-            v-for="(n, suit) in score"
+            v-for="(n, suit) in solitaire.score"
             v-bind:key="suit"
             :suit="suit"
             :number="n"
@@ -177,9 +217,9 @@ function setHint(enabled: boolean) {
                 lane.cards.push(card);
 
                 if (n === 2) {
-                  score[suit] = 14;
+                  solitaire.score[suit] = 14;
                 } else {
-                  score[suit]--;
+                  solitaire.score[suit]--;
                 }
                 didAMove();
                 didAClick();
@@ -194,50 +234,53 @@ function setHint(enabled: boolean) {
       <div class="solitaire--deck">
         <div class="solitaire--wrap">
           <PlayingCard
-            :suit="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].suit : 'hearts'"
-            :number="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].n : 0"
+            :suit="solitaire.drawindex >= 0 ? solitaire.drawdeck[solitaire.drawindex].suit : 'hearts'"
+            :number="solitaire.drawindex >= 0 ? solitaire.drawdeck[solitaire.drawindex].n : 0"
             :class="{
-              shake: drawdeck.index >= 0
-                && shaker.n === drawdeck.deck[drawdeck.index].n
-                && shaker.suit === drawdeck.deck[drawdeck.index].suit,
+              shake: solitaire.drawindex >= 0
+                && shaker.n === solitaire.drawdeck[solitaire.drawindex].n
+                && shaker.suit === solitaire.drawdeck[solitaire.drawindex].suit,
               hinter: settings.hints
-                && drawdeck.index >= 0
-                && (canAddToScore(drawdeck.deck[drawdeck.index])
-                || canAddToLane(drawdeck.deck[drawdeck.index])),
+                && solitaire.drawindex >= 0
+                && (canAddToScore(solitaire.drawdeck[solitaire.drawindex])
+                || canAddToLane(solitaire.drawdeck[solitaire.drawindex])),
             }"
-            @click="() => {
-              if (drawdeck.index === -1) return
+            @click="event => {
+              if (solitaire.drawindex === -1) return
 
-              if (canAddToScore(drawdeck.deck[drawdeck.index])) {
-                addToScore(drawdeck.deck[drawdeck.index]);
-                drawdeck.deck.splice(drawdeck.index, 1);
-                drawdeck.index--;
+              if (canAddToScore(solitaire.drawdeck[solitaire.drawindex])) {
+                addToScore(solitaire.drawdeck[solitaire.drawindex]);
+                // setCardAnim(solitaire.drawdeck[solitaire.drawindex], event.target.getBoundingClientRect());
+                solitaire.drawdeck.splice(solitaire.drawindex, 1);
+                solitaire.drawindex--;
                 didAMove();
                 didAClick();
                 return
               }
 
-              const lane = canAddToLane(drawdeck.deck[drawdeck.index]);
+              const lane = canAddToLane(solitaire.drawdeck[solitaire.drawindex]);
 
               if (lane) {
-                const card = drawdeck.deck.splice(drawdeck.index, 1);
+                const card = solitaire.drawdeck.splice(solitaire.drawindex, 1);
                 lane.cards.push(...card);
-                drawdeck.index--;
+                solitaire.drawindex--;
                 checkWinState();
                 didAMove();
+                // setCardAnim(card[0], event.target.getBoundingClientRect());
               } else {
-                shake(drawdeck.deck[drawdeck.index]);
+                shake(solitaire.drawdeck[solitaire.drawindex]);
               }
               didAClick();
             }"
           />
           <PlayingCard
-            :number="drawdeck.index === drawdeck.deck.length - 1 ? 0 : 1"
+            :number="solitaire.drawindex === solitaire.drawdeck.length - 1 ? 0 : 1"
             @click="() => {
-              drawdeck.index++;
-              if (drawdeck.index >= drawdeck.deck.length) {
-                drawdeck.index = -1;
+              solitaire.drawindex++;
+              if (solitaire.drawindex >= solitaire.drawdeck.length) {
+                solitaire.drawindex = -1;
               }
+              didAMove();
               didAClick();
             }"
           />
@@ -246,7 +289,7 @@ function setHint(enabled: boolean) {
     </div>
     <div class="solitaire--playfield">
       <div
-        v-for="(field, idx) in playingField"
+        v-for="(field, idx) in solitaire.playField"
         v-bind:key="idx"
         class="solitaire--playfield-lane"
       >
@@ -267,17 +310,21 @@ function setHint(enabled: boolean) {
           :class="{
             shake: shaker.n === card.n && shaker.suit === card.suit,
             hinter: settings.hints
-              && card.n !== 13
-              && (canAddToScore(card) || canAddToLane(card)),
+              && ((idx2 === field.cards.length - 1
+              && canAddToScore(card))
+              || canAddToLane(card)),
           }"
-          @click="() => {
+          @click="event => {
             const isLast = idx2 === field.cards.length - 1;
 
             if (isLast && canAddToScore(card)) {
-              addToScore(field.cards.pop());
+              const card = field.cards.pop();
+              addToScore(card);
               field.popHidden();
+              checkWinState();
               didAMove();
               didAClick();
+              // setCardAnim(card, event.target.getBoundingClientRect());
               return
             }
 
@@ -289,6 +336,7 @@ function setHint(enabled: boolean) {
               field.popHidden();
               checkWinState();
               didAMove();
+              // setCardAnim(card, event.target.getBoundingClientRect());
             } else {
               shake(card);
             }
@@ -297,7 +345,22 @@ function setHint(enabled: boolean) {
         />
       </div>
     </div>
-    <span class="won" v-if="won">YOU WON!</span>
+    <div class="won" v-if="won">
+      <span>YOU WON!</span>
+      <!-- <button>Auto complete</button> -->
+    </div>
+    <!-- <PlayingCard
+      v-if="cardAnim.from.n"
+      :suit="cardAnim.from.suit"
+      :number="cardAnim.from.n"
+      class="cardanim"
+      :style="{
+        top: `${cardAnim.from.top}px`,
+        right: `${cardAnim.from.right}px`,
+        bottom: `${cardAnim.from.bottom}px`,
+        left: `${cardAnim.from.left}px`,
+      }"
+    /> -->
   </div>
   <div
     class="solitaire--menu-background"
@@ -327,13 +390,16 @@ function setHint(enabled: boolean) {
 </template>
 
 <style scoped>
+.cardanim {
+  position: absolute;
+  animation: ease 1s;
+}
+
 .solitaire {
   display: flex;
   flex-direction: column;
   background: green;
   flex: 1;
-  width: 600px;
-  margin: 0 auto;
 }
 
 .solitaire--bar {
@@ -425,6 +491,13 @@ button:active {
   background-color: darkolivegreen;
 }
 
+button:disabled {
+  background-color: gray;
+  color: black;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .solitaire--menu button {
   width: auto;
 }
@@ -435,7 +508,8 @@ button:active {
 
 @media (min-width: 1024px) {
   .solitaire {
-    margin-bottom: 8px;
+    width: 600px;
+    margin: 0 auto;
   }
 
   .solitaire--bar {

@@ -4,10 +4,9 @@ export class Lane {
   cards: Card[]
   hidden: Card[]
 
-  constructor(cards: Card[]) {
-    const first = cards.pop()
-    this.hidden = cards;
-    this.cards = [first!];
+  constructor(hidden: Card[], cards: Card[]) {
+    this.hidden = hidden;
+    this.cards = cards;
   }
 
   isEmpty(): boolean {
