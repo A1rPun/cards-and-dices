@@ -7,14 +7,18 @@ import { Lane } from "@/components/Solitaire/Lane";
 const cards = ["hearts", "diamonds", "clubs", "spades"]
   .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
 const drawIndex = ref(-1);
+const wins = ref(parseInt(localStorage.getItem("solitaireLifeTimeWins") ?? "0"));
+const totalMoves = ref(parseInt(localStorage.getItem("solitaireLifeTimeMoves") ?? "0"));
+const totalClicks = ref(parseInt(localStorage.getItem("solitaireLifeTimeClicks") ?? "0"));
 const won = ref(false);
+const menu = ref(false);
 const score = ref({
   "hearts": 0,
   "diamonds": 0,
   "clubs": 0,
   "spades": 0,
 });
-const moves = [];
+const moves = ref([]);
 const shaker = ref({});
 
 shuffleDeck(cards);
@@ -75,18 +79,41 @@ function checkWinState(): void {
   }
 }
 
+function saveStats() {
+  localStorage.setItem("solitaireLifeTimeWins", wins.value.toString());
+  localStorage.setItem("solitaireLifeTimeMoves", totalMoves.value.toString());
+  localStorage.setItem("solitaireLifeTimeClicks", totalClicks.value.toString());
+}
+
+function didAMove() {
+  totalMoves.value = totalMoves.value + 1;
+  moves.value.push(1); // TODO: history
+}
+
+function didAClick() {
+  totalClicks.value = totalClicks.value + 1;
+  saveStats();
+}
+
 function shake(card: Card): void {
   shaker.value = card;
   setTimeout(() => shaker.value = {}, 100); // TODO: Fix bug by clearing timeout
 }
 
 function undo() {
-  const lastMove = moves.pop();
+  const lastMove = moves.value.pop();
   // lastMove
 }
 
+function newGame() {
+  window.location.reload(); // TODO: Re-init
+}
+
 function restart() {
-  window.location.reload(); // TODO: Better restart
+}
+
+function showMenu() {
+  menu.value = true;
 }
 </script>
 
@@ -94,7 +121,8 @@ function restart() {
   <div class="solitaire">
     <div class="solitaire--bar">
       <!-- <button @click="" title="Hint">?<br>Hint</button> -->
-      <button @click="restart" title="Restart">↺<br>Restart</button>
+      <button @click="showMenu" title="Menu">🍔<br>Menu</button>
+      <div v-if="moves.length">{{ moves.length }} moves</div>
       <button @click="undo" title="Undo">↩<br>Undo</button>
     </div>
     <div class="solitaire--header">
@@ -118,9 +146,11 @@ function restart() {
                 } else {
                   score[suit]--;
                 }
+                didAMove();
               } else {
                 shake(card);
               }
+              didAClick();
             }"
           />
         </div>
@@ -135,6 +165,8 @@ function restart() {
               if (canAddToScore(drawDeck[drawIndex])) {
                 drawDeck.splice(drawIndex, 1);
                 drawIndex--;
+                didAMove();
+                didAClick();
                 return
               }
 
@@ -145,17 +177,21 @@ function restart() {
                 lane.cards.push(...card);
                 drawIndex--;
                 checkWinState();
+                didAMove();
               } else {
                 shake(drawDeck[drawIndex]);
               }
+              didAClick();
             }"
           />
           <PlayingCard
             :number="drawIndex === drawDeck.length - 1 ? 0 : 1"
             @click="() => {
               drawIndex++;
-              if (drawIndex >= drawDeck.length)
+              if (drawIndex >= drawDeck.length) {
                 drawIndex = -1;
+              }
+              didAClick();
             }"
           />
         </div>
@@ -188,6 +224,8 @@ function restart() {
             if (isLast && canAddToScore(card)) {
               field.cards.pop();
               field.popHidden();
+              didAMove();
+              didAClick();
               return
             }
 
@@ -198,14 +236,30 @@ function restart() {
               lane.cards.push(...cards);
               field.popHidden();
               checkWinState();
+              didAMove();
             } else {
               shake(card);
             }
+            didAClick();
           }"
         />
       </div>
     </div>
     <span class="won" v-if="won">YOU WON!</span>
+  </div>
+  <div
+    class="solitaire--menu-background"
+    v-if="menu"
+    @click="() => menu = false"
+  ></div>
+  <div class="solitaire--menu" v-if="menu">
+    <div class="solitaire--menu-close"></div>
+    <button @click="newGame" title="New game">♥︎♦︎♣︎♠︎<br>New game</button>
+    <!-- <button @click="restart" title="Restart">↺<br>Restart game</button> -->
+    <button @click="() => menu = false" title="Restart">×<br>Close menu</button>
+    <div>{{ wins }} lifetime wins</div>
+    <div>{{ totalMoves }} lifetime moves</div>
+    <div>{{ totalClicks }} lifetime card clicks</div>
   </div>
 </template>
 
@@ -214,8 +268,9 @@ function restart() {
   display: flex;
   flex-direction: column;
   background: green;
-  margin-bottom: 8px;
   flex: 1;
+  width: 600px;
+  margin: 0 auto;
 }
 
 .solitaire--bar {
@@ -224,21 +279,6 @@ function restart() {
   justify-content: space-between;
   padding: 4px;
   gap: 8px;
-}
-
-.solitaire--bar button {
-  height: 50px;
-  width: 100px;
-  background-color: green;
-  border: 1px solid black;
-}
-
-.solitaire--bar button:hover {
-  background-color: darkgreen;
-}
-
-.solitaire--bar button:active {
-  background-color: darkolivegreen;
 }
 
 .solitaire--header {
@@ -278,6 +318,52 @@ function restart() {
 .won {
   font-size: 3em;
   text-align: center;
+}
+
+.solitaire--menu-background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0 auto;
+  background: rgba(204, 204, 204, 0.23);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(4.9px);
+  -webkit-backdrop-filter: blur(4.9px);
+}
+
+.solitaire--menu {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: darkgreen;
+  border: 4px solid black;
+  padding: 16px;
+  width: 256px;
+}
+
+button {
+  height: 50px;
+  width: 100px;
+  background-color: green;
+  border: 1px solid black;
+}
+
+button:hover {
+  background-color: darkgreen;
+}
+
+button:active {
+  background-color: darkolivegreen;
+}
+
+.solitaire--menu button {
+  width: auto;
 }
 
 @media (min-width: 1024px) {
