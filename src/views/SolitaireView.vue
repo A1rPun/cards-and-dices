@@ -3,13 +3,8 @@ import { ref } from "vue";
 import PlayingCard from "@/components/Solitaire/PlayingCard.vue";
 import { Card } from "@/components/Solitaire/Card";
 import { Lane } from "@/components/Solitaire/Lane";
+import { shuffleDeck } from "@/components/Solitaire/Solitaire";
 
-const cards = ["hearts", "diamonds", "clubs", "spades"]
-  .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
-const drawIndex = ref(-1);
-const wins = ref(parseInt(localStorage.getItem("solitaireLifeTimeWins") ?? "0"));
-const totalMoves = ref(parseInt(localStorage.getItem("solitaireLifeTimeMoves") ?? "0"));
-const totalClicks = ref(parseInt(localStorage.getItem("solitaireLifeTimeClicks") ?? "0"));
 const won = ref(false);
 const menu = ref(false);
 const score = ref({
@@ -20,24 +15,32 @@ const score = ref({
 });
 const moves = ref([]);
 const shaker = ref({});
-
-shuffleDeck(cards);
-
 const playingField = ref([]);
+const stats = ref({
+  wins: parseInt(localStorage.getItem("solitaireLifeTimeWins") ?? "0"),
+  totalMoves: parseInt(localStorage.getItem("solitaireLifeTimeMoves") ?? "0"),
+  totalClicks: parseInt(localStorage.getItem("solitaireLifeTimeClicks") ?? "0"),
+})
+const drawdeck = ref({
+  deck: [],
+  index: -1,
+});
 
-for (let i = 0, count = 0; i < 7; i++) {
-  const lane = cards.slice(count, count + i + 1);
-  playingField.value.push(new Lane(lane));
-  count += i + 1;
-}
+init();
 
-const drawDeck = cards.slice(-24);
+function init() {
+  const cards = ["hearts", "diamonds", "clubs", "spades"]
+    .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
 
-function shuffleDeck(array: unknown[]): void {
-  for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+  shuffleDeck(cards);
+
+  for (let i = 0, count = 0; i < 7; i++) {
+    const lane = cards.slice(count, count + i + 1);
+    playingField.value.push(new Lane(lane));
+    count += i + 1;
   }
+
+  drawdeck.value.deck = cards.slice(-24);
 }
 
 function canAddToScore(card: Card): boolean {
@@ -73,24 +76,20 @@ function canAddToLane(card: Card): Lane|undefined {
 function checkWinState(): void {
   if (playingField.value.every(field => !field.hidden.length)) {
     won.value = true;
-    wins.value = wins.value + 1;
+    stats.value.wins = stats.value.wins + 1;
+    localStorage.setItem("solitaireLifeTimeWins", stats.value.wins.toString());
   }
 }
 
-function saveStats() {
-  localStorage.setItem("solitaireLifeTimeWins", wins.value.toString());
-  localStorage.setItem("solitaireLifeTimeMoves", totalMoves.value.toString());
-  localStorage.setItem("solitaireLifeTimeClicks", totalClicks.value.toString());
-}
-
 function didAMove() {
-  totalMoves.value = totalMoves.value + 1;
+  stats.value.totalMoves = stats.value.totalMoves + 1;
   moves.value.push(1); // TODO: history
+  localStorage.setItem("solitaireLifeTimeMoves", stats.value.totalMoves.toString());
 }
 
 function didAClick() {
-  totalClicks.value = totalClicks.value + 1;
-  saveStats();
+  stats.value.totalClicks = stats.value.totalClicks + 1;
+  localStorage.setItem("solitaireLifeTimeClicks", stats.value.totalClicks.toString());
 }
 
 function shake(card: Card): void {
@@ -156,38 +155,40 @@ function showMenu() {
       <div class="solitaire--deck">
         <div class="solitaire--wrap">
           <PlayingCard
-            :suit="drawIndex >= 0 ? drawDeck[drawIndex].suit : 'hearts'"
-            :number="drawIndex >= 0 ? drawDeck[drawIndex].n : 0"
-            :class="{ shake: drawIndex >= 0 && shaker.n === drawDeck[drawIndex].n && shaker.suit === drawDeck[drawIndex].suit }"
+            :suit="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].suit : 'hearts'"
+            :number="drawdeck.index >= 0 ? drawdeck.deck[drawdeck.index].n : 0"
+            :class="{ shake: drawdeck.index >= 0 && shaker.n === drawdeck.deck[drawdeck.index].n && shaker.suit === drawdeck.deck[drawdeck.index].suit }"
             @click="() => {
-              if (canAddToScore(drawDeck[drawIndex])) {
-                drawDeck.splice(drawIndex, 1);
-                drawIndex--;
+              if (drawdeck.index === -1) return
+
+              if (canAddToScore(drawdeck.deck[drawdeck.index])) {
+                drawdeck.deck.splice(drawdeck.index, 1);
+                drawdeck.index--;
                 didAMove();
                 didAClick();
                 return
               }
 
-              const lane = canAddToLane(drawDeck[drawIndex]);
+              const lane = canAddToLane(drawdeck.deck[drawdeck.index]);
 
               if (lane) {
-                const card = drawDeck.splice(drawIndex, 1);
+                const card = drawdeck.deck.splice(drawdeck.index, 1);
                 lane.cards.push(...card);
-                drawIndex--;
+                drawdeck.index--;
                 checkWinState();
                 didAMove();
               } else {
-                shake(drawDeck[drawIndex]);
+                shake(drawdeck.deck[drawdeck.index]);
               }
               didAClick();
             }"
           />
           <PlayingCard
-            :number="drawIndex === drawDeck.length - 1 ? 0 : 1"
+            :number="drawdeck.index === drawdeck.deck.length - 1 ? 0 : 1"
             @click="() => {
-              drawIndex++;
-              if (drawIndex >= drawDeck.length) {
-                drawIndex = -1;
+              drawdeck.index++;
+              if (drawdeck.index >= drawdeck.deck.length) {
+                drawdeck.index = -1;
               }
               didAClick();
             }"
@@ -255,9 +256,9 @@ function showMenu() {
     <button @click="newGame" title="New game">♥︎♦︎♣︎♠︎<br>New game</button>
     <!-- <button @click="restart" title="Restart">↺<br>Restart game</button> -->
     <button @click="() => menu = false" title="Restart">×<br>Close menu</button>
-    <div>{{ wins }} lifetime wins</div>
-    <div>{{ totalMoves }} lifetime moves</div>
-    <div>{{ totalClicks }} lifetime card clicks</div>
+    <div>{{ stats.wins }} lifetime wins</div>
+    <div>{{ stats.totalMoves }} lifetime moves</div>
+    <div>{{ stats.totalClicks }} lifetime card clicks</div>
   </div>
 </template>
 
