@@ -5,15 +5,14 @@ import { Card } from "@/components/Solitaire/Card";
 import { Lane } from "@/components/Solitaire/Lane";
 import { shuffleDeck } from "@/components/Solitaire/Solitaire";
 
+const cards = ["hearts", "diamonds", "clubs", "spades"]
+    .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
+
 const won = ref(false);
 const menu = ref(false);
-const score = ref({
-  "hearts": 0,
-  "diamonds": 0,
-  "clubs": 0,
-  "spades": 0,
-});
+const score = ref({});
 const moves = ref([]);
+const clicks = ref(0);
 const shaker = ref({});
 const playingField = ref([]);
 const stats = ref({
@@ -29,18 +28,34 @@ const drawdeck = ref({
 init();
 
 function init() {
-  const cards = ["hearts", "diamonds", "clubs", "spades"]
-    .flatMap((suit) => Array.from(Array(13), (_, idx) => new Card(suit, idx + 2)));
-
   shuffleDeck(cards);
+  initScore();
+  initPlayfield();
+  initDrawdeck();
+}
+
+function initScore() {
+  score.value = {
+    "hearts": 0,
+    "diamonds": 0,
+    "clubs": 0,
+    "spades": 0,
+  };
+}
+
+function initPlayfield() {
+  playingField.value = [];
 
   for (let i = 0, count = 0; i < 7; i++) {
     const lane = cards.slice(count, count + i + 1);
     playingField.value.push(new Lane(lane));
     count += i + 1;
   }
+}
 
+function initDrawdeck() {
   drawdeck.value.deck = cards.slice(-24);
+  drawdeck.value.index = -1;
 }
 
 function canAddToScore(card: Card): boolean {
@@ -88,6 +103,7 @@ function didAMove() {
 }
 
 function didAClick() {
+  clicks.value = clicks.value + 1;
   stats.value.totalClicks = stats.value.totalClicks + 1;
   localStorage.setItem("solitaireLifeTimeClicks", stats.value.totalClicks.toString());
 }
@@ -103,14 +119,23 @@ function undo() {
 }
 
 function newGame() {
-  window.location.reload(); // TODO: Re-init
+  init();
+  hideMenu();
 }
 
 function restart() {
+  initScore();
+  initPlayfield();
+  initDrawdeck();
+  hideMenu();
 }
 
 function showMenu() {
   menu.value = true;
+}
+
+function hideMenu() {
+  menu.value = false;
 }
 </script>
 
@@ -119,7 +144,10 @@ function showMenu() {
     <div class="solitaire--bar">
       <!-- <button @click="" title="Hint">?<br>Hint</button> -->
       <button @click="showMenu" title="Menu">🍔<br>Menu</button>
-      <div v-if="moves.length">{{ moves.length }} moves</div>
+      <div>
+        <div v-if="moves.length">{{ moves.length }} moves</div>
+        <div v-if="clicks">{{ clicks }} card clicks</div>
+      </div>
       <button @click="undo" title="Undo">↩<br>Undo</button>
     </div>
     <div class="solitaire--header">
@@ -144,10 +172,11 @@ function showMenu() {
                   score[suit]--;
                 }
                 didAMove();
-              } else {
+                didAClick();
+              } else if (n > 1) {
                 shake(card);
+                didAClick();
               }
-              didAClick();
             }"
           />
         </div>
@@ -249,13 +278,13 @@ function showMenu() {
   <div
     class="solitaire--menu-background"
     v-if="menu"
-    @click="() => menu = false"
+    @click="hideMenu"
   ></div>
   <div class="solitaire--menu" v-if="menu">
     <div class="solitaire--menu-close"></div>
-    <button @click="newGame" title="New game">♥︎♦︎♣︎♠︎<br>New game</button>
-    <!-- <button @click="restart" title="Restart">↺<br>Restart game</button> -->
-    <button @click="() => menu = false" title="Restart">×<br>Close menu</button>
+    <button @click="newGame">♥︎♦︎♣︎♠︎<br>New game</button>
+    <button @click="restart">↺<br>Restart game</button>
+    <button @click="hideMenu">×<br>Close menu</button>
     <div>{{ stats.wins }} lifetime wins</div>
     <div>{{ stats.totalMoves }} lifetime moves</div>
     <div>{{ stats.totalClicks }} lifetime card clicks</div>
