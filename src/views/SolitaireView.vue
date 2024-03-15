@@ -17,6 +17,7 @@ const score = ref({});
 const moves = ref([]);
 const clicks = ref(0);
 const shaker = ref({});
+let shakeTimeout: number;
 const playingField = ref([]);
 const stats = ref({
   wins: parseInt(localStorage.getItem("solitaireLifeTimeWins") ?? "0"),
@@ -30,9 +31,11 @@ const drawdeck = ref({
 
 init();
 
-function init() {
+function init(shuffle = true) {
   won.value = false;
-  shuffleDeck(cards);
+  clicks.value = 0;
+  moves.value = [];
+  shuffle && shuffleDeck(cards);
   initScore();
   initPlayfield();
   initDrawdeck();
@@ -89,7 +92,7 @@ function canAddToLane(card: Card): Lane|undefined {
 }
 
 function checkWinState(): void {
-  if (playingField.value.every(field => !field.hidden.length)) {
+  if (!won.value && playingField.value.every(field => !field.hidden.length)) {
     won.value = true;
     stats.value.wins = stats.value.wins + 1;
     localStorage.setItem("solitaireLifeTimeWins", stats.value.wins.toString());
@@ -110,7 +113,8 @@ function didAClick() {
 
 function shake(card: Card): void {
   shaker.value = card;
-  setTimeout(() => shaker.value = {}, 100); // TODO: Fix bug by clearing timeout
+  clearTimeout(shakeTimeout);
+  shakeTimeout = setTimeout(() => shaker.value = {}, 100);
 }
 
 function undo() {
@@ -124,9 +128,7 @@ function newGame() {
 }
 
 function restart() {
-  initScore();
-  initPlayfield();
-  initDrawdeck();
+  init(false);
   hideMenu();
 }
 
@@ -264,7 +266,9 @@ function setHint(enabled: boolean) {
           :number="card.n"
           :class="{
             shake: shaker.n === card.n && shaker.suit === card.suit,
-            hinter: settings.hints && (canAddToScore(card) || canAddToLane(card)),
+            hinter: settings.hints
+              && card.n !== 13
+              && (canAddToScore(card) || canAddToLane(card)),
           }"
           @click="() => {
             const isLast = idx2 === field.cards.length - 1;
