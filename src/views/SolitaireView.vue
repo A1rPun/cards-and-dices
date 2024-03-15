@@ -71,11 +71,9 @@ function canAddToLane(card: Card): Lane|undefined {
 }
 
 function checkWinState(): void {
-  if (
-    playingField.value.every(field => !field.hidden.length)
-    && !drawDeck.length
-  ) {
+  if (playingField.value.every(field => !field.hidden.length)) {
     won.value = true;
+    wins.value = wins.value + 1;
   }
 }
 
